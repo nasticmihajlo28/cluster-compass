@@ -75,7 +75,7 @@ const CONTENT = {
   emailButton: "Send me more",
   emailInvalid: "That email doesn't look quite right.",
   emailError: "Something went wrong. Give it another try.",
-  emailSuccess: "Done. Keep an eye on your inbox.",
+  emailSuccess: "Check your inbox for an email with your full Values Compass report. If you don't see it, check your spam folder. Please feel free to reach out if you need help!",
 
   exploreTitle: "Explore the Other Clusters",
   exploreIntro: "Your compass points here first, but everyone in your life belongs to one of these teams too. Have a look around. You'll recognize people you know.",
@@ -618,7 +618,7 @@ const LOGO_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4QAAAEsCAY
     const wrap = document.getElementById("emailwrap");
     if (!wrap) return;
     if (emailDone) {
-      wrap.innerHTML = '<div class="card-box"><h3>' + esc(CONTENT.emailTitle) + '</h3><p class="email-msg ok">' + esc(CONTENT.emailSuccess) + '</p></div>';
+      wrap.innerHTML = '<div class="card-box"><h3>' + esc(CONTENT.emailTitle) + '</h3><p class="email-msg ok">' + esc(CONTENT.emailSuccess) + ' <a href="mailto:team@davidallisoninc.com" style="color:inherit;text-decoration:underline">team@davidallisoninc.com</a></p></div>';
       return;
     }
     wrap.innerHTML = '<div class="card-box">' +

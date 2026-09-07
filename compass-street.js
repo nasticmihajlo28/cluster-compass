@@ -75,7 +75,7 @@ const CONTENT = {
   emailButton: "Send me more",
   emailInvalid: "That email doesn't look quite right.",
   emailError: "Something went wrong. Give it another try.",
-  emailSuccess: "Check your inbox for an email with your full Values Compass report. If you don't see it, check your spam folder. Please feel free to reach out if you need help!",
+  emailSuccess: "Done. Watch your inbox for the Values Compass report. If it doesn’t show up in a minute or two, check your spam, and if you still don’t get it, reach out!",
 
   exploreTitle: "Explore the Other Clusters",
   exploreIntro: "Your compass points here first, but everyone in your life belongs to one of these teams too. Have a look around. You'll recognize people you know.",

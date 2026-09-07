@@ -614,30 +614,39 @@ const LOGO_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4QAAAEsCAY
   }
 
   /* ---------- email capture ---------- */
-  function mountEmail() {
+   function mountEmail() {
     const wrap = document.getElementById("emailwrap");
     if (!wrap) return;
     if (emailDone) {
-      wrap.innerHTML = '<div class="card-box"><h3>' + esc(CONTENT.emailTitle) + '</h3><p class="email-msg ok">' + esc(CONTENT.emailSuccess) + ' <a href="mailto:team@davidallisoninc.com" style="color:inherit;text-decoration:underline">team@davidallisoninc.com</a></p></div>';
+      wrap.innerHTML = '<div class="card-box" style="text-align:center"><h3>' + esc(CONTENT.emailTitle) + '</h3><p class="email-msg ok">' + esc(CONTENT.emailSuccess) + ' <a href="mailto:team@davidallisoninc.com" style="color:inherit;text-decoration:underline">team@davidallisoninc.com</a></p></div>';
       return;
     }
     wrap.innerHTML = '<div class="card-box">' +
       '<h3>' + esc(CONTENT.emailTitle) + '</h3>' +
       '<p>' + esc(CONTENT.emailBody) + '</p>' +
       '<div class="email-row">' +
+      '<input type="text" id="firstInput" autocomplete="given-name" placeholder="First name">' +
+      '<input type="text" id="lastInput" autocomplete="family-name" placeholder="Last name">' +
       '<input type="email" id="emailInput" inputmode="email" autocomplete="email" placeholder="' + esc(CONTENT.emailPlaceholder) + '">' +
       '<button class="btn" id="emailBtn" style="padding:14px 18px;font-size:.98rem">' + esc(CONTENT.emailButton) + '</button>' +
       '</div><div class="email-msg" id="emailMsg"></div></div>';
     document.getElementById("emailBtn").onclick = async () => {
       const input = document.getElementById("emailInput");
+      const firstEl = document.getElementById("firstInput");
+      const lastEl = document.getElementById("lastInput");
       const msg = document.getElementById("emailMsg");
       const email = (input.value || "").trim();
+      const firstName = (firstEl.value || "").trim();
+      const lastName = (lastEl.value || "").trim();
+      if (!firstName) {
+        msg.className = "email-msg err"; msg.textContent = "Please enter your first name."; return;
+      }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
         msg.className = "email-msg err"; msg.textContent = CONTENT.emailInvalid; return;
       }
       msg.className = "email-msg"; msg.textContent = "…";
       try {
-        await apiPost({ action: "email", email: email, source: SETTINGS.api.source });
+        await apiPost({ action: "email", email: email, firstName: firstName, lastName: lastName, source: SETTINGS.api.source });
         emailDone = true;
         mountEmail();
       } catch (e) {

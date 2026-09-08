@@ -15,9 +15,9 @@ const SETTINGS = {
   },
   questionLogo: true,            // small David Allison logo in the bottom third of each question page
   results: {
-    showTagline: true,
+    showTagline: false,
     showDial: true,              // the compass dial under the cluster name
-    showDescription: true,
+    showDescription: false,
     showScenarios: "hidden",     // "open" | "collapsed" | "one" | "hidden" — hidden on Stage; "one" teases on Street
     showCompassHeadings: true,
     showHeadingsHelp: false,     // how-to-use-the-headings line (Street; David explains it on stage)
@@ -72,7 +72,7 @@ const CONTENT = {
   emailTitle: "Take your cluster with you",
   emailBody: "Give us your email address. We'll send you more about your cluster and how to put it to work in your life.",
   emailPlaceholder: "you@example.com",
-  emailButton: "Send me more",
+  emailButton: "Send me my full report",
   emailInvalid: "That email doesn't look quite right.",
   emailError: "Something went wrong. Give it another try.",
   emailSuccess: "Done. Watch your inbox for the Values Compass report. If it doesn’t show up in a minute or two, check your spam, and if you still don’t get it, reach out!",
@@ -614,16 +614,14 @@ const LOGO_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4QAAAEsCAY
   }
 
   /* ---------- email capture ---------- */
-   function mountEmail() {
+  function mountEmail() {
     const wrap = document.getElementById("emailwrap");
     if (!wrap) return;
     if (emailDone) {
-      wrap.innerHTML = '<div class="card-box" style="text-align:center"><h3>' + esc(CONTENT.emailTitle) + '</h3><p class="email-msg ok">' + esc(CONTENT.emailSuccess) + ' <a href="mailto:team@davidallisoninc.com" style="color:inherit;text-decoration:underline">team@davidallisoninc.com</a></p></div>';
+      wrap.innerHTML = '<div style="margin-top:26px"><p class="email-msg ok" style="text-align:center">' + esc(CONTENT.emailSuccess) + ' <a href="mailto:team@davidallisoninc.com" style="color:inherit;text-decoration:underline">team@davidallisoninc.com</a></p></div>';
       return;
     }
-    wrap.innerHTML = '<div class="card-box">' +
-      '<h3>' + esc(CONTENT.emailTitle) + '</h3>' +
-      '<p>' + esc(CONTENT.emailBody) + '</p>' +
+    wrap.innerHTML = '<div style="margin-top:26px">' +
       '<div class="email-row">' +
       '<input type="text" id="firstInput" autocomplete="given-name" placeholder="First name">' +
       '<input type="text" id="lastInput" autocomplete="family-name" placeholder="Last name">' +

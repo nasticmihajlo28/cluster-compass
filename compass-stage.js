@@ -71,7 +71,7 @@ const CONTENT = {
   welcomeSiteLabel: "davidallisoninc.com",
   emailTitle: "Take your cluster with you",
   emailBody: "Give us your email address. We'll send you more about your cluster and how to put it to work in your life.",
-  emailPlaceholder: "you@example.com",
+  emailPlaceholder: "Email",
   emailButton: "Send me my full report",
   emailInvalid: "That email doesn't look quite right.",
   emailError: "Something went wrong. Give it another try.",

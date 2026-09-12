@@ -74,6 +74,7 @@ const CONTENT = {
   emailPlaceholder: "Email",
   emailButton: "Send me my full report",
   emailInvalid: "That email doesn't look quite right.",
+  emailSending: "Sending…",
   emailError: "Something went wrong. Give it another try.",
   emailSuccess: "Done. Watch your inbox for the Values Compass report. If it doesn’t show up in a minute or two, check your spam, and if you still don’t get it, reach out!",
 
@@ -270,21 +271,76 @@ const LOGO_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4QAAAEsCAY
   /* ---------- backend ---------- */
   const demo = () => SETTINGS.api.demoMode || !SETTINGS.api.url;
 
-  async function apiGet() {
-    if (demo()) {
-      return { ok: true, session: "demo", total: KEYS.reduce((t, k) => t + demoCounts[k], 0), counts: Object.assign({}, demoCounts), demo: true };
+  // Apps Script cold-starts. First hit after an idle period can take 15-25s and can
+  // come back as an HTML interstitial instead of JSON. Everything below exists so a
+  // cold backend never turns into a visible error for the first person in the room.
+  const API_TIMEOUT_MS = 30000;   // generous: we want to wait out a cold start, not give up on it
+  const API_RETRY_MS = [700, 1800];
+
+  const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+
+  // NOTE: do NOT add a Content-Type header here. A JSON content type makes this a
+  // "preflighted" CORS request and Apps Script does not answer OPTIONS. Plain text
+  // body keeps it a simple request; doPost() reads e.postData.contents either way.
+  async function apiFetch(init) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), API_TIMEOUT_MS);
+    try {
+      const r = await fetch(SETTINGS.api.url, Object.assign({
+        redirect: "follow",
+        signal: ctrl.signal,
+      }, init));
+      const text = await r.text();
+      if (!r.ok) throw new Error("http-" + r.status);
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        throw new Error("bad-json");
+      }
+    } finally {
+      clearTimeout(timer);
     }
-    const r = await fetch(SETTINGS.api.url, { method: "GET" });
-    return await r.json();
   }
-  async function apiPost(payload) {
+
+  // attempts = how many total tries. Reads can retry freely; writes get one retry.
+  async function apiCall(init, attempts) {
+    const n = attempts || 1;
+    let lastErr;
+    for (let i = 0; i < n; i++) {
+      try {
+        return await apiFetch(init);
+      } catch (e) {
+        lastErr = e;
+        if (i < n - 1) await sleep(API_RETRY_MS[i] || 1800);
+      }
+    }
+    throw lastErr;
+  }
+
+  function demoAgg() {
+    return { ok: true, session: "demo", total: KEYS.reduce((t, k) => t + demoCounts[k], 0), counts: Object.assign({}, demoCounts), demo: true };
+  }
+
+  async function apiGet(attempts) {
+    if (demo()) return demoAgg();
+    return await apiCall({ method: "GET" }, attempts || 3);
+  }
+  async function apiPost(payload, attempts) {
     if (demo()) {
       if (payload.action === "submit") demoCounts[payload.cluster]++;
       if (payload.action === "reset") KEYS.forEach((k) => { demoCounts[k] = 0; });
-      return { ok: true, session: "demo", total: KEYS.reduce((t, k) => t + demoCounts[k], 0), counts: Object.assign({}, demoCounts), demo: true };
+      return demoAgg();
     }
-    const r = await fetch(SETTINGS.api.url, { method: "POST", body: JSON.stringify(payload) });
-    return await r.json();
+    return await apiCall({ method: "POST", body: JSON.stringify(payload) }, attempts || 2);
+  }
+
+  // Fire-and-forget ping so the backend is already awake by the time anyone
+  // reaches the results screen. Called on page load and again on the reveal.
+  let warmed = false;
+  function warmUp() {
+    if (demo() || warmed) return;
+    warmed = true;
+    apiCall({ method: "GET" }, 2).catch(() => { warmed = false; });
   }
   async function submitOnce(cluster) {
     try {
@@ -472,6 +528,7 @@ const LOGO_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4QAAAEsCAY
   }
 
   function renderResults(chosenKey) {
+    warmUp(); // second chance in case the boot ping was missed or failed
     const s = scores();
     const top = topClusters();
     const isTie = top.length > 1 && !chosenKey && !primaryKey;
@@ -628,7 +685,10 @@ const LOGO_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4QAAAEsCAY
       '<input type="email" id="emailInput" inputmode="email" autocomplete="email" placeholder="' + esc(CONTENT.emailPlaceholder) + '">' +
       '<button class="btn" id="emailBtn" style="padding:14px 18px;font-size:.98rem">' + esc(CONTENT.emailButton) + '</button>' +
       '</div><div class="email-msg" id="emailMsg"></div></div>';
+    let sending = false;
     document.getElementById("emailBtn").onclick = async () => {
+      if (sending) return;
+      const btn = document.getElementById("emailBtn");
       const input = document.getElementById("emailInput");
       const firstEl = document.getElementById("firstInput");
       const lastEl = document.getElementById("lastInput");
@@ -642,12 +702,18 @@ const LOGO_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4QAAAEsCAY
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
         msg.className = "email-msg err"; msg.textContent = CONTENT.emailInvalid; return;
       }
-      msg.className = "email-msg"; msg.textContent = "…";
+      sending = true;
+      btn.disabled = true;
+      btn.style.opacity = ".6";
+      msg.className = "email-msg"; msg.textContent = CONTENT.emailSending;
       try {
         await apiPost({ action: "email", email: email, firstName: firstName, lastName: lastName, source: SETTINGS.api.source });
         emailDone = true;
         mountEmail();
       } catch (e) {
+        sending = false;
+        btn.disabled = false;
+        btn.style.opacity = "";
         msg.className = "email-msg err"; msg.textContent = CONTENT.emailError;
       }
     };
@@ -730,6 +796,7 @@ const LOGO_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4QAAAEsCAY
 
   /* ---------- boot ---------- */
   mountMotif();
+  warmUp(); // wake the backend the moment the QR is scanned, not at the email form
   const params = new URLSearchParams(location.search);
   if ((params.get("host") || "").toLowerCase() === SETTINGS.api.hostKey.toLowerCase()) {
     renderHost();
